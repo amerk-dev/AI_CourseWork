@@ -2,6 +2,7 @@ import pandas as pd
 
 
 def make_prediction(data: dict, artifacts: dict):
+    print(f'\n\n\t{data}\n\n')
     model = artifacts['model']
     scaler = artifacts['scaler']
     label_encoders = artifacts['label_encoders']
@@ -27,7 +28,8 @@ def make_prediction(data: dict, artifacts: dict):
         'saving_accounts': encoded_data['saving_accounts'],
         'checking_account': encoded_data['checking_account'],
         'duration': data['duration'],
-        'purpose': encoded_data['purpose']
+        'purpose': encoded_data['purpose'],
+        'credit_amount': data['credit_amount']
     }
 
     input_df = pd.DataFrame([input_data], columns=feature_columns)

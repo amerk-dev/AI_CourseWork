@@ -31,6 +31,7 @@ class CreditRiskInput(BaseModel):
     checking_account: str
     duration: int
     purpose: str
+    credit_amount: int
 
 
 # Загрузка артефактов
@@ -41,6 +42,5 @@ print(artifacts)
 
 @app.post("/predict")
 def predict_credit_risk(input_data: CreditRiskInput):
-    data = input_data.dict()
-    result = make_prediction(data, artifacts)
+    result = make_prediction(input_data.dict(), artifacts)
     return result

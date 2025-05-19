@@ -10,3 +10,4 @@ class ClientData(BaseModel):
     Checking_account: str
     Duration: int = Field(..., ge=1)
     Purpose: str
+    Credit_amount: int

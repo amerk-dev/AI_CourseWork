@@ -5,8 +5,7 @@ from sklearn.preprocessing import LabelEncoder, StandardScaler
 from sklearn.ensemble import RandomForestClassifier
 import os
 
-MODEL_PATH = "models/credit_risk_model-v1.joblib"
-DATA_PATH = "data/german_credit_data.csv"
+from config import MODEL_PATH, DATA_PATH
 
 
 def preprocess_data(df):
@@ -34,8 +33,8 @@ def preprocess_data(df):
 
     # Целевая переменная
     df['Credit amount'] = df['Credit amount'].astype(float)
-    y = df['Credit amount'] > df['Credit amount'].median()
-    X = df.drop(columns=['Credit amount'])
+    X = df.copy()
+    y = df['Risk'] if 'Risk' in df.columns else (df['Credit amount'] > df['Credit amount'].median())
 
     return X, y, label_encoders
 
@@ -49,6 +48,8 @@ def train_and_save_model():
 
     scaler = StandardScaler()
     X_train = scaler.fit_transform(X_train)
+    X_test = scaler.transform(X_test)
+
 
     model = RandomForestClassifier(n_estimators=100, random_state=42)
     model.fit(X_train, y_train)
@@ -63,3 +64,4 @@ def train_and_save_model():
     os.makedirs(os.path.dirname(MODEL_PATH), exist_ok=True)
     joblib.dump(artifacts, MODEL_PATH)
     print("Модель сохранена")
+    print(artifacts)
