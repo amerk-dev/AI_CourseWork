@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Предсказание кредитного риска</title>
+    <style>
+        body { font-family: sans-serif; margin: 20px; background-color: #f4f4f4; color: #333; }
+        .container { background-color: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); max-width: 600px; margin: auto; }
+        h1, h2 { color: #333; text-align: center; }
+        form div { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input[type="number"], select {
+            width: calc(100% - 22px); /* Учитываем padding и border */
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box; /* Важно для корректного расчета ширины */
+        }
+        input[type="submit"] {
+            background-color: #5cb85c;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            display: block;
+            width: 100%;
+        }
+        input[type="submit"]:hover { background-color: #4cae4c; }
+        .prediction-result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 4px;
+            text-align: center;
+        }
+        .prediction-result.good { background-color: #dff0d8; color: #3c763d; border: 1px solid #d6e9c6;}
+        .prediction-result.bad { background-color: #f2dede; color: #a94442; border: 1px solid #ebccd1;}
+        .prediction-result.error { background-color: #fcf8e3; color: #8a6d3b; border: 1px solid #faebcc;}
+        .form-note { font-size: 0.9em; color: #777; margin-top: 5px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Предсказание кредитного риска</h1>
+
+        <form method="POST" action="/">
+            <h2>Данные клиента:</h2>
+            {% for field in numerical_fields %}
+            <div>
+                <label for="{{ field }}">{{ field.replace('_', ' ').title() }}:</label>
+                <input type="number" id="{{ field }}" name="{{ field }}"
+                       value="{{ form_data.get(field, '') }}" required step="any">
+            </div>
+            {% endfor %}
+
+            <div>
+                <label for="Job">Тип работы (Job):</label>
+                <select id="Job" name="Job" required>
+                    <option value="">-- Выберите --</option>
+                    {% for option in job_options %}
+                    <option value="{{ option.value }}" {% if form_data.get('Job') == option.value|string %}selected{% endif %}>
+                        {{ option.label }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            {% for field, options in categorical_fields_data.items() %}
+            <div>
+                <label for="{{ field }}">{{ field.replace('_', ' ').title() }}:</label>
+                <select id="{{ field }}" name="{{ field }}" required>
+                    <option value="">-- Выберите --</option> {# Для обязательных полей #}
+                    {# Если поле может быть "Unknown" или пропущено, то можно сделать так: #}
+                    {# <option value="Unknown">Не указано/Unknown</option> #}
+                    {# или если preprocess_features обрабатывает None/пустую строку #}
+                     {% if field in ['Saving accounts', 'Checking account'] %} {# Эти поля могут быть 'Unknown' #}
+                        <option value="Unknown" {% if form_data.get(field) == 'Unknown' %}selected{% endif %}>Не указано/Unknown</option>
+                    {% endif %}
+                    {% for option_val in options %}
+                        {% if option_val != 'Unknown' or field not in ['Saving accounts', 'Checking account'] %} {# Не дублируем 'Unknown' #}
+                        <option value="{{ option_val }}" {% if form_data.get(field) == option_val %}selected{% endif %}>
+                            {{ option_val.replace('_', ' ').title() }}
+                        </option>
+                        {% endif %}
+                    {% endfor %}
+                </select>
+                {% if field in ['Saving accounts', 'Checking account'] %}
+                    <p class="form-note">Может быть 'Не указано/Unknown'.</p>
+                {% endif %}
+            </div>
+            {% endfor %}
+
+            <div>
+                <input type="submit" value="Предсказать">
+            </div>
+        </form>
+
+        {% if prediction %}
+            <h2>Результат предсказания:</h2>
+            {% if prediction.error %}
+                <div class="prediction-result error">
+                    <p><strong>Ошибка:</strong> {{ prediction.error }}</p>
+                </div>
+            {% else %}
+                <div class="prediction-result {{ 'good' if prediction.label == 'good' else 'bad' }}">
+                    <p><strong>Метка риска:</strong> {{ prediction.label }}</p>
+                    <p><strong>Вероятность "хорошего" риска:</strong> {{ prediction.probability_good }}</p>
+                </div>
+            {% endif %}
+        {% endif %}
+    </div>
+</body>
+</html>

@@ -28,7 +28,7 @@ def preprocess_features(df_input, scaler=None, fit_scaler=False, trained_columns
     # Обработка пропущенных значений для категориальных колонок (до OHE)
     for col in ['Saving accounts', 'Checking account']:
         if col in df.columns:
-            df[col].fillna('Unknown', inplace=True) # Такая же стратегия, как при обучении
+            df[col] = df[col].fillna('Unknown').replace('', 'Unknown')
 
     # Кодирование категориальных признаков (One-Hot Encoding)
     # 'Job' также обрабатывается как категориальный для OHE
