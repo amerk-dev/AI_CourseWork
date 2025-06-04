@@ -19,6 +19,11 @@ from .config import (
 )
 from .data_preprocessing import get_train_test_data
 
+RISK_LABELS_RU_FOR_TREE = {
+    'bad': 'Плохой', # Порядок важен, должен совпадать с label_encoder_risk.classes_
+    'good': 'Хороший'
+}
+
 def build_model(input_shape):
     tf.random.set_seed(RANDOM_STATE)
     np.random.seed(RANDOM_STATE)
