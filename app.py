@@ -1,14 +1,22 @@
 # credit_risk_app/app.py
-from flask import Flask, request, render_template, jsonify
+from flask import Flask, request, render_template, jsonify, send_from_directory  # <--- Добавлено send_from_directory
 import pandas as pd
-import numpy as np  # Может понадобиться для обработки некоторых значений из формы
+import numpy as np
+import os  # <--- Добавлено
 
-# Импортируем нашу функцию предсказания и конфигурацию (для полей формы)
 from src.predict import make_prediction
-from src.config import CATEGORICAL_COLS_FOR_OHE, ORIGINAL_NUMERICAL_COLS
+from src.config import (
+    CATEGORICAL_COLS_FOR_OHE, ORIGINAL_NUMERICAL_COLS,
+    MODEL_DIR  # <--- Добавлено для пути к изображению дерева
+)
 
 app = Flask(__name__)
 
+# ... (остальной код app.py, включая FORM_FIELDS, OPTIONS, @app.route('/'), @app.route('/api/predict')) ...
+# (Код для @app.route('/') и @app.route('/api/predict') остается таким же, как в предыдущем ответе)
+# ... (весь код до if __name__ == '__main__':)
+
+# Копируем сюда предыдущий код для index и api_predict
 # Определяем поля, которые должны быть в форме.
 # Мы возьмем их из конфигурации, чтобы быть консистентными.
 # 'Job' уже есть в CATEGORICAL_COLS_FOR_OHE
@@ -39,51 +47,34 @@ def index():
     if request.method == 'POST':
         try:
             raw_form_data = request.form.to_dict()
-            form_data = raw_form_data.copy()  # Сохраняем для повторного отображения в форме
+            form_data = raw_form_data.copy()
 
-            # Преобразуем числовые поля из строки в число
-            # и обработаем пустые строки для опциональных категориальных полей
             input_data_for_prediction = {}
             for field in FORM_FIELDS_NUMERICAL:
                 value = raw_form_data.get(field)
                 if value:
                     input_data_for_prediction[field] = float(value) if '.' in value else int(value)
-                else:
-                    # Можно установить значение по умолчанию или вернуть ошибку, если поле обязательное
-                    # Для нашего случая, если числовое поле не заполнено, модель может выдать ошибку при предобработке
-                    # или preprocess_features должен уметь это обрабатывать (например, импутацией)
-                    # Пока что сделаем их обязательными на стороне клиента (HTML) или здесь вернем ошибку.
-                    # Для простоты, предположим, что они будут заполнены (или HTML5 validation сработает)
-                    pass  # или input_data_for_prediction[field] = None и обработать в preprocess
 
             for field in FORM_FIELDS_CATEGORICAL:
                 value = raw_form_data.get(field)
-                # Если 'Unknown' передается как пустая строка из select, или мы хотим None
-                if value == "Unknown" or not value:  # Пустая строка или "Unknown"
-                    input_data_for_prediction[field] = None  # или 'Unknown' если так обрабатывается в preprocess
+                if value == "Unknown" or not value:
+                    input_data_for_prediction[field] = None
                 else:
                     input_data_for_prediction[field] = value
 
-            # 'Job' - числовой, но категориальный по смыслу
             job_value = raw_form_data.get('Job')
             if job_value:
                 input_data_for_prediction['Job'] = int(job_value)
 
-            # Убедимся, что все ожидаемые поля есть, даже если они None
-            # Это важно, т.к. make_prediction ожидает все ключи, которые были при обучении
-            # (хотя preprocess_features с reindex должен это покрывать)
             all_expected_fields = ORIGINAL_NUMERICAL_COLS + CATEGORICAL_COLS_FOR_OHE
             for field_name in all_expected_fields:
                 if field_name not in input_data_for_prediction:
-                    # Это может произойти, если поле не было в форме или не обработано выше
-                    # Для категориальных, если не выбрано, может быть None или "Unknown"
                     if field_name in CATEGORICAL_COLS_FOR_OHE:
-                        input_data_for_prediction[field_name] = None  # или 'Unknown'
-                    else:  # Числовые лучше сделать обязательными
+                        input_data_for_prediction[field_name] = None
+                    else:
                         app.logger.warning(f"Поле {field_name} отсутствует во входных данных для предсказания.")
 
             app.logger.info(f"Данные для предсказания: {input_data_for_prediction}")
-
             prediction = make_prediction(input_data_for_prediction)
 
             if prediction and "error" not in prediction:
@@ -96,14 +87,13 @@ def index():
             else:
                 prediction_result_display = {"error": "Не удалось получить предсказание."}
 
-
         except Exception as e:
             app.logger.error(f"Ошибка при обработке запроса: {e}", exc_info=True)
             prediction_result_display = {"error": f"Произошла внутренняя ошибка: {str(e)}"}
 
     return render_template('index.html',
                            numerical_fields=FORM_FIELDS_NUMERICAL,
-                           categorical_fields_data={  # Данные для генерации select-ов
+                           categorical_fields_data={
                                "Sex": SEX_OPTIONS,
                                "Housing": HOUSING_OPTIONS,
                                "Saving accounts": SAVING_ACCOUNTS_OPTIONS,
@@ -112,36 +102,43 @@ def index():
                            },
                            job_options=JOB_OPTIONS,
                            prediction=prediction_result_display,
-                           form_data=form_data  # Передаем введенные данные обратно в шаблон
+                           form_data=form_data
                            )
 
 
-# Можно добавить эндпоинт API, если нужно
 @app.route('/api/predict', methods=['POST'])
 def api_predict():
     if not request.is_json:
         return jsonify({"error": "Missing JSON in request"}), 400
-
     data = request.get_json()
-
-    # Простая валидация (можно улучшить)
-    # Убедимся, что data - это dict (для одного предсказания)
     if not isinstance(data, dict):
         return jsonify({"error": "Input data should be a JSON object"}), 400
-
-    # Здесь можно добавить более строгую валидацию ключей и типов данных
-
     try:
         prediction_result = make_prediction(data)
         if "error" in prediction_result:
-            return jsonify(prediction_result), 400  # или 500 в зависимости от ошибки
+            return jsonify(prediction_result), 400
         return jsonify(prediction_result)
     except Exception as e:
         app.logger.error(f"API Error: {e}", exc_info=True)
         return jsonify({"error": "Internal server error during prediction"}), 500
 
 
+# Новый маршрут для отображения дерева решений
+@app.route('/decision_tree')
+def decision_tree_page():
+    # Путь к изображению дерева. Имя файла должно совпадать с тем, что генерируется в model_training.py
+    tree_image_filename = 'decision_tree.png'
+    tree_image_exists = os.path.exists(os.path.join(MODEL_DIR, tree_image_filename))
+    return render_template('decision_tree.html', tree_image_filename=tree_image_filename,
+                           tree_image_exists=tree_image_exists)
+
+
+# Маршрут для отдачи статических файлов (изображения дерева) из папки models
+# Flask по умолчанию ищет статику в папке 'static'. Мы делаем это для 'models'.
+@app.route('/models/<filename>')
+def serve_model_file(filename):
+    return send_from_directory(MODEL_DIR, filename)
+
+
 if __name__ == '__main__':
-    # Перед запуском убедитесь, что модель обучена!
-    # python -m src.model_training
     app.run(debug=True, port=5000)
