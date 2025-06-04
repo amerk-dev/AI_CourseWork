@@ -38,3 +38,12 @@ pip install -r requirements.txt
 2. Выполнение предсказаний (пример из командной строки)
 Для примера, как использовать функцию предсказания:
 ```python -m src.predict```
+ну или `app.py` запустить, там интерфейс
+
+## Docker
+
+Сборка Docker-образа
+`docker build -t credit-risk-app .`
+
+Запуск Docker-контейнера из образа
+`docker run -p 5001:5000 --name credit-risk-container credit-risk-app`
