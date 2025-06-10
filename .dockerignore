@@ -1,0 +1,26 @@
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+pip-log.txt
+pip-delete-this-directory.txt
+.cache/
+.vscode/
+.idea/
+*.DS_Store
+*.komodoproject
+.project
+.pytest_cache/
+*.log
+docker-compose.yml
+Dockerfile
+README.md
+# Добавьте другие файлы/папки, которые не нужны в образе
+# Например, если вы не хотите включать 'data/' или 'models/' в образ,
+# а будете монтировать их как volume, то добавьте их сюда.
+# Но для простого самодостаточного образа их лучше включить.
+# data/
+# models/ # Если модели очень большие, лучше монтировать. Но тогда их нужно будет где-то хранить.

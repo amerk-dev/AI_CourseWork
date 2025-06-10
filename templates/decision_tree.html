@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Визуализация Дерева Решений</title>
+    <style>
+        body { font-family: sans-serif; margin: 20px; background-color: #f4f4f4; color: #333; }
+        .container { background-color: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); max-width: 90%; margin: auto; text-align: center; }
+        h1 { color: #333; }
+        img { max-width: 100%; height: auto; border: 1px solid #ddd; margin-top: 20px; }
+        a { color: #5cb85c; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        .message { margin-top: 20px; padding: 10px; border-radius: 4px; }
+        .message.error { background-color: #f2dede; color: #a94442; border: 1px solid #ebccd1;}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Визуализация Дерева Решений</h1>
+        <p><a href="{{ url_for('index') }}">Вернуться на главную страницу</a></p>
+
+        {% if tree_image_exists %}
+            <p>Это дерево решений было обучено на тех же данных, что и основная нейросетевая модель. Оно может помочь понять некоторые зависимости в данных.</p>
+            <img src="{{ url_for('serve_model_file', filename=tree_image_filename) }}" alt="Дерево Решений">
+        {% else %}
+            <p class="message error">Изображение дерева решений ({{ tree_image_filename }}) не найдено.
+            Пожалуйста, сначала обучите модели, запустив <code>python -m src.model_training</code>.</p>
+        {% endif %}
+    </div>
+</body>
+</html>
